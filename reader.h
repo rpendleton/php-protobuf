@@ -25,5 +25,6 @@ int reader_skip_32bit(reader_t *reader);
 int reader_skip_64bit(reader_t *reader);
 int reader_skip_length_delimited(reader_t *reader);
 int reader_skip_varint(reader_t *reader);
+void reader_minit();
 
 #endif /* PROTOBUF_PHP_READER_H */

@@ -21,6 +21,7 @@ int writer_write_float(writer_t *writer, uint32_t field_number, double value);
 int writer_write_int(writer_t *writer, uint32_t field_number, int64_t value);
 int writer_write_signed_int(writer_t *writer, uint32_t field_number, int64_t value);
 int writer_write_string(writer_t *writer, uint32_t field_number, const char *str, size_t len);
+void writer_minit();
 
 #define writer_write_message(writer, field_number, str, len) writer_write_string((writer), (field_number), (str), (len))
 

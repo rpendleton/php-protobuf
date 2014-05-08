@@ -597,6 +597,9 @@ PHP_MINIT_FUNCTION(protobuf)
 	PB_CONSTANT(PB_TYPE_STRING);
 	PB_CONSTANT(PB_TYPE_BOOL);
 
+	writer_minit();
+	reader_minit();
+	
 	return SUCCESS;
 }
 

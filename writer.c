@@ -10,6 +10,8 @@
 #define WRITER_32BIT_SPACE 4
 #define WRITER_64BIT_SPACE 8
 
+zend_class_entry *pb_writer_entry;
+
 static inline int writer_ensure_space(writer_t *writer, size_t len);
 static inline void writer_write_varint(writer_t *writer, int64_t value);
 
@@ -245,4 +247,85 @@ static inline void write_fixed64(fixed64_t value, uint8_t *out)
 	write_fixed32(lo, out);
 	write_fixed32(hi, out + 4);
 #endif
+}
+
+#pragma mark -
+
+PHP_METHOD(ProtobufWriter, convertIntToVarint)
+{
+	long value = -1;
+	
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &value) != SUCCESS)
+	{
+		return;
+	}
+	
+	writer_t writer;
+	writer_init(&writer);
+	
+	if (writer_ensure_space(&writer, WRITER_VARINT_SPACE) != 0)
+		return;
+	
+	writer_write_varint(&writer, value);
+	
+	char *pack;
+	int pack_size;
+	
+	pack = writer_get_pack(&writer, &pack_size);
+	RETURN_STRINGL(pack, pack_size, 0);
+	
+	writer_free_pack(&writer);
+}
+
+PHP_METHOD(ProtobufWriter, convertSignedIntToVarint)
+{
+	long value = -1;
+	
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &value) != SUCCESS)
+	{
+		return;
+	}
+	
+	writer_t writer;
+	writer_init(&writer);
+	
+	if (writer_ensure_space(&writer, WRITER_VARINT_SPACE) != 0)
+		return;
+	
+	if (value < 0)
+		*(uint64_t *) &value = ((uint64_t) (-value) * 2) - 1;
+	else
+		*(uint64_t *) &value = 2 * value;
+	
+	writer_write_varint(&writer, value);
+	
+	char *pack;
+	int pack_size;
+	
+	pack = writer_get_pack(&writer, &pack_size);
+	RETURN_STRINGL(pack, pack_size, 0);
+	
+	writer_free_pack(&writer);
+}
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_convertIntToVarint, 0, 0, 1)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_convertSignedIntToVarint, 0, 0, 1)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+zend_function_entry pb_writer_methods[] = {
+	PHP_ME(ProtobufWriter, convertIntToVarint, arginfo_convertIntToVarint, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(ProtobufWriter, convertSignedIntToVarint, arginfo_convertSignedIntToVarint, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	{NULL, NULL, NULL, 0, 0}
+};
+
+void writer_minit()
+{
+	zend_class_entry ce;
+	
+	INIT_CLASS_ENTRY(ce, "ProtobufWriter", pb_writer_methods);
+	pb_writer_entry = zend_register_internal_class(&ce TSRMLS_CC);
 }

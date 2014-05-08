@@ -1,9 +1,13 @@
 #include <string.h>
 
+#include <php.h>
+
 #include "protobuf.h"
 #include "reader.h"
 
 #define READER_LEFT(reader) (reader)->len - (reader)->pos
+
+zend_class_entry *pb_reader_entry;
 
 static inline fixed32_t reader_read_fixed_uint32(const uint8_t *data);
 static inline fixed64_t reader_read_fixed_uint64(const uint8_t *data);
@@ -228,4 +232,75 @@ static inline fixed64_t reader_read_fixed_uint64(const uint8_t *data)
 
 	return val;
 #endif
+}
+
+#pragma mark -
+
+PHP_METHOD(ProtobufReader, convertVarintToInt)
+{
+	char *str = NULL;
+	int str_len = -1;
+	
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &str, &str_len) != SUCCESS)
+	{
+		return;
+	}
+	
+	reader_t reader;
+	reader_init(&reader, str, str_len);
+	
+	uint64_t val;
+	
+	if (reader_read_varint(&reader, &val) != 0)
+		return;
+	
+	RETURN_LONG(val);
+}
+
+PHP_METHOD(ProtobufReader, convertVarintToSignedInt)
+{
+	char *str = NULL;
+	int str_len = -1;
+	
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &str, &str_len) != SUCCESS)
+	{
+		return;
+	}
+	
+	reader_t reader;
+	reader_init(&reader, str, str_len);
+	
+	uint64_t val;
+	
+	if (reader_read_varint(&reader, &val) != 0)
+		return;
+	
+	if (val & 1)
+		val = -((*(uint64_t *) &val) >> 1) - 1;
+	else
+		val = ((*(uint64_t *) &val) >> 1);
+	
+	RETURN_LONG(val);
+}
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_convertVarintToInt, 0, 0, 1)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_convertVarintToSignedInt, 0, 0, 1)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+zend_function_entry pb_reader_methods[] = {
+	PHP_ME(ProtobufReader, convertVarintToInt, arginfo_convertVarintToInt, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(ProtobufReader, convertVarintToSignedInt, arginfo_convertVarintToSignedInt, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	{NULL, NULL, NULL, 0, 0}
+};
+
+void reader_minit()
+{
+	zend_class_entry ce;
+	
+	INIT_CLASS_ENTRY(ce, "ProtobufReader", pb_reader_methods);
+	pb_reader_entry = zend_register_internal_class(&ce TSRMLS_CC);
 }
