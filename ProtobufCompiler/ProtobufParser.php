@@ -643,7 +643,7 @@ class ProtobufParser
             ->appendParam('return', 'int[]');
 
         $buffer->append($comment)
-            ->append('public function getEnumValues()')
+            ->append('public static function getEnumValues()')
             ->append('{');
 
         if ($this->_hasSplTypes) {
